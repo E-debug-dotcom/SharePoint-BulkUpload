@@ -14,9 +14,9 @@
 $SiteUrl      = "https://###/####" # Full site URL
 $LibraryName  = "Test_Bulk upload" # Target document library
 $TargetFolder = "Test_Bulk upload/test" # Target folder path inside library
-$CsvPath      = "C:\$UserName\Downloads\metadata.csv" # Path to your metadata CSV
-$SourceFolder = "C:\Users\EGIRGIS\Downloads\bulkupload" # Folder containing the files
-$LogPath      = "C:\Users\EGIRGIS\Downloads\bulkupload\upload-log.csv" # Output log path
+$CsvPath      = "C:\$UserName$\Downloads\metadata.csv" # Path to your metadata CSV
+$SourceFolder = "C:\$UserName$\Downloads\bulkupload" # Folder containing the files
+$LogPath      = "C:\$UserName$\Downloads\bulkupload\upload-log.csv" # Output log path
 $ThrottleMs   = 300 # Delay between uploads (ms) to avoid throttling
 # ------------------------------------------------------------
 
