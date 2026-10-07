@@ -1,93 +1,98 @@
-# SharePoint-BulkUpload
+# SharePoint Bulk Upload Tool
 
-PowerShell script to bulk upload documents with metadata to a SharePoint on-premises document library using [PnP.PowerShell](https://pnp.github.io/powershell/).
+A PowerShell tool that uploads many documents to a SharePoint Server (on-premises) document library at once, and fills in their metadata from a CSV file.
+
+It is built for non-technical users: no script editing, guided prompts, and every check runs **before** anything is uploaded.
 
 ## Features
 
-- Reads file list and metadata from a CSV
-- Uploads documents to a specified library and subfolder
-- Applies metadata (e.g., project number, document date) on upload
-- Displays a real-time progress bar during upload
-- Throttle delay between uploads to avoid overwhelming the server
-- Logs results (SUCCESS, FAILED, SKIPPED) to a CSV file
+- Prompts for the site URL (with a default from `Config.psd1`)
+- Opens a file picker to select the metadata CSV
+- Lists the site's document libraries to choose from
+- Lets you browse and pick the destination folder
+- Matches CSV columns to library columns by display name or internal name
+- Checks the CSV before uploading:
+  - Missing, duplicate, or blank file names
+  - Unknown column names (and lists the valid ones)
+  - Required columns left blank
+  - Invalid dates, numbers, Yes/No values, and choice values
+- Shows a review screen and asks for confirmation before uploading
+- Displays a progress bar during the upload
+- Writes a log file (SUCCESS / FAILED / SKIPPED) for every document
 
-## Prerequisites
+## Requirements
 
-- [PnP.PowerShell](https://pnp.github.io/powershell/) module
+- Windows PowerShell 5.1 (not PowerShell 7)
+- SharePoint Server 2016, 2019, or Subscription Edition
+- `SharePointPnPPowerShell2019` module:
 
-  ```powershell
-  Install-Module PnP.PowerShell -Scope CurrentUser
-  ```
-
-- SharePoint on-premises (2016 / 2019 / SE) with appropriate permissions
-- PowerShell execution policy set to `RemoteSigned` or higher
-
-  ```powershell
-  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-  ```
-
-## CSV Format
-
-Your `metadata.csv` must include a `FileName` column with the exact filename (including extension). Additional columns map to SharePoint column **internal names**.
-
-```csv
-FileName,ProjectNum,DocumentDate
-Report_001.docx,PROJ-A,2024-01-15
-Report_002.docx,PROJ-B,2025-01-16
+```powershell
+Install-Module SharePointPnPPowerShell2019 -Scope CurrentUser -AllowClobber
 ```
 
-A sample file is included: [`metadata-sample.csv`](metadata-sample.csv)
+- Permission to add files to the target library
 
-## Configuration
+## Files
 
-Edit the `CONFIG` section at the top of `Upload-ToSharePoint.ps1`:
+| File | Purpose |
+| --- | --- |
+| `SharePointBulkUploader.ps1` | The upload tool |
+| `Upload.bat` | Double-click launcher for the tool |
+| `Config.psd1` | Default site URL and upload delay |
+| `metadata-sample.csv` | Example metadata file |
 
-| Variable | Description | Example |
-|---|---|---|
-| `$SiteUrl` | SharePoint site collection URL | `https://yoursite.sharepoint.com/sites/YourSite` |
-| `$LibraryName` | Target document library name | `Shared Documents` |
-| `$TargetFolder` | Library-relative path to the target folder | `Shared Documents/subfolder` |
-| `$CsvPath` | Full path to your metadata CSV | `C:\path\to\metadata.csv` |
-| `$SourceFolder` | Folder containing the files to upload | `C:\path\to\source\files` |
-| `$LogPath` | Full path for the output log CSV | `C:\path\to\upload-log.csv` |
-| `$ThrottleMs` | Delay (ms) between uploads to avoid throttling | `300` |
+## Setup
+
+1. Download the repository and keep all files in the same folder.
+2. Edit `Config.psd1` and set `DefaultSiteUrl` to your site.
+3. If Windows blocks the script, run:
+
+```powershell
+Unblock-File .\SharePointBulkUploader.ps1
+```
+
+## Preparing the CSV
+
+- Put the CSV in the **same folder** as the documents you want to upload.
+- The CSV must have a `FileName` column with the exact file name, including the extension.
+- Every other column must match a column in the target library (display name or internal name).
+- For multi-choice columns, separate values with a semicolon (`;`).
+
+```csv
+FileName,Title,DocumentDate
+Report_001.docx,Monthly Report January,2025-01-15
+Report_002.docx,Monthly Report February,2025-02-15
+```
 
 ## Usage
 
-1. Edit the `CONFIG` section with your environment details
-2. Place your source files in the `$SourceFolder` directory
-3. Prepare your `metadata.csv` with filenames and metadata columns
-4. Open PowerShell and run:
+**Easiest way:** double-click `Upload.bat`.
 
-   ```powershell
-   .\Upload-ToSharePoint.ps1
-   ```
+Or run it from PowerShell:
 
-5. Enter your credentials when prompted
-6. Monitor the progress bar and console output
-7. Review `upload-log.csv` for detailed results
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\SharePointBulkUploader.ps1
+```
+
+1. Enter the site URL, or press Enter to use the default.
+2. Select your metadata CSV.
+3. Sign in with `DOMAIN\username` and your password.
+4. Choose the document library.
+5. Browse to the destination folder and type `U` to upload there.
+6. Review the summary and type `Y` to start.
+
+The log file is saved in the same folder as the CSV.
 
 ## Notes
 
-- **Verify internal column names** — SharePoint internal names often differ from display names. Check via:
+- Close the documents and the CSV before running. Files open in Word or Excel can fail to upload.
+- Credentials are requested at runtime and held in memory only. Never store passwords in the script or config file.
+- System fields such as Created By and Modified cannot be set.
 
-  ```powershell
-  Connect-PnPOnline -Url "https://yoursite.sharepoint.com/sites/YourSite" -Credentials (Get-Credential)
-  Get-PnPField -List "Your Library" | Select-Object Title, InternalName
-  ```
+## License
 
-  Use the `InternalName` values in the `$values` hashtable in the script.
-
-- **Close files before running** — If a source file is open in Word or locked by Explorer's preview pane, the upload will fail for that file. Close all source files and toggle off the preview pane (`Alt+P`) before running.
-
-- **Unblock downloaded scripts** — If you downloaded this script from the internet, Windows may block execution. Run:
-
-  ```powershell
-  Unblock-File -Path ".\Upload-ToSharePoint.ps1"
-  ```
-
-- **Read-only system fields** — Fields like `Modified By`, `Created By`, and `Modified` are system-managed. Do not include them in the `$values` hashtable.
+MIT. See [LICENSE](LICENSE).
 
 ## Author
 
-**Eleandro Girgis**
+Eleandro Girgis

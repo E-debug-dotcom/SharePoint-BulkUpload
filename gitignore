@@ -1,0 +1,7 @@
+# Upload logs created by the tool
+SharePoint_Upload_Log_*.csv
+
+# Personal or test files
+*.bak
+*.tmp
+test/
